@@ -1,0 +1,44 @@
+<html>
+	<head>
+		<title data-bind="title">annote</title>
+
+		<link rel="stylesheet" type="text/css" href="../node_modules/highlight/lib/vendor/highlight.js/styles/zenburn.css"/>
+		<style>
+			pre, code { margin:0; padding:0; }
+			h1, h2, h3, h4, h5, h6, p {
+				margin: 0 0 1em 0;
+				padding: 0;
+			}
+
+			.clearfix:after {
+				visibility: hidden;
+				display: block;
+				font-size: 0;
+				content: " ";
+				clear: both;
+				height: 0;
+				}
+			* html .clearfix             { zoom: 1; } /* IE6 */
+			*:first-child+html .clearfix { zoom: 1; } /* IE7 */
+
+			div.annotated-block {
+				clear: left;
+				margin: 20px 0;
+			}
+			div.annotation {
+				float: left;
+				width: 450px;
+				overflow: auto;
+			}
+			div.annotated-code {
+				margin-left: 500px;
+				overflow: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<h1 id="file"></h1>
+		<div id="annotated-source">
+		</div>
+	</body>
+</html>

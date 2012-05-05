@@ -1,0 +1,22 @@
+{
+	"name": "annote",
+	"version": "0.0.1",
+	"description": "Auto-generated documentation in the form of annotated source code.",
+	"author": "Matt Dunlap <mpdunlap@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Prestaul/annote.git"
+	},
+	"keywords": [
+		"annotation",
+		"documentation"
+	],
+	"dependencies": {
+		"async": "0.1.*",
+		"highlight": "0.2.*",
+		"marked": "0.2.*",
+		"nconf": "0.5.*",
+		"optimist": "0.3.*",
+		"plates": "0.4.*"
+	}
+}
