@@ -1,0 +1,284 @@
+<html>
+	<head>
+		<title data-bind="title">annote.js - annote</title>
+
+		<link rel="stylesheet" type="text/css" href="../node_modules/highlight/lib/vendor/highlight.js/styles/zenburn.css"/>
+		<style>
+			pre, code { margin:0; padding:0; }
+			h1, h2, h3, h4, h5, h6, p {
+				margin: 0 0 1em 0;
+				padding: 0;
+			}
+
+			.clearfix:after {
+				visibility: hidden;
+				display: block;
+				font-size: 0;
+				content: " ";
+				clear: both;
+				height: 0;
+				}
+			* html .clearfix             { zoom: 1; } /* IE6 */
+			*:first-child+html .clearfix { zoom: 1; } /* IE7 */
+
+			div.annotated-block {
+				clear: left;
+				margin: 20px 0;
+			}
+			div.annotation {
+				float: left;
+				width: 450px;
+				overflow: auto;
+			}
+			div.annotated-code {
+				margin-left: 500px;
+				overflow: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<h1 id="file">annote.js</h1>
+		<div id="annotated-source"><div class="annotated-block clearfix">
+	<div class="annotation"></div>
+	<div class="annotated-code"><pre><code><span class="comment">#!/usr/local/bin/node</span>
+<span class="comment">/**
+ * annote
+ *
+ * Auto-generated documentation in the form of annotated source code.
+ */</span>
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Required dependencies</h3>
+<ul>
+<li><strong>filesystem</strong> utilities</li>
+<li><strong>path</strong> utilities</li>
+<li><strong>async</strong> for simplifying asyncronous coding</li>
+<li><strong>nconf</strong> for reading command line params and configuration</li>
+<li><strong>highlight</strong> for syntax highlighting</li>
+<li><strong>marked</strong> for parsing markdown in comments</li>
+<li><strong>plates</strong> for templating</li>
+</ul>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">var</span> fs = <span class="keyword">require</span>(<span class="string">'fs'</span>),
+    path = <span class="keyword">require</span>(<span class="string">'path'</span>),
+    async = <span class="keyword">require</span>(<span class="string">'async'</span>),
+    nconf = <span class="keyword">require</span>(<span class="string">'nconf'</span>),
+    highlight = <span class="keyword">require</span>(<span class="string">'highlight'</span>).Highlight,
+    markdown = <span class="keyword">require</span>(<span class="string">'marked'</span>),
+    Plates = <span class="keyword">require</span>(<span class="string">'plates'</span>);
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Command line options</h3>
+<p>Descriptions of options are in the source code... Examples of calls:
+
+</p>
+<pre><code>annote.js --path lib --match &quot;*.js&quot; --write-to documentation // document js files from lib in the documentation directory
+annote.js --path src -d 1 // only document code at the root of the src directory
+annote.js -p src --maxdepth 1 // same as previous
+annote.js --no-markdown // no markdown in comments
+annote.js --md --no-highlight // markdown but no syntax highlighting</code></pre>
+</div>
+	<div class="annotated-code"><pre><code>nconf.argv({
+        config: { alias: <span class="string">'c'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Optionally provide a path to a json config file.'</span> },
+        path: { alias: <span class="string">'p'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Generate docs for files found at this path.'</span> },
+        match: { alias: <span class="string">'m'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Annotate files matching this name pattern. (e.g. *.js, or *.{js,php})'</span> },
+        maxdepth: { alias: <span class="string">'d'</span>, demand: <span class="keyword">true</span>, describe: <span class="string">'Recurse only this deep to find source code.'</span> },
+        <span class="string">"write-to"</span>: { alias: <span class="string">'w'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Write the documentation here.'</span> },
+        markdown: { alias: <span class="string">'md'</span>, boolean: <span class="keyword">true</span>, <span class="keyword">default</span>: <span class="keyword">true</span>, describe: <span class="string">'Assume markdown in annotations?'</span> },
+        highlight: { alias: <span class="string">'h'</span>, boolean: <span class="keyword">true</span>, <span class="keyword">default</span>: <span class="keyword">true</span>, describe: <span class="string">'Use syntax highlighting in source code?'</span> },
+        verbose: { alias: <span class="string">'v'</span>, boolean: <span class="keyword">true</span>, describe: <span class="string">'Provide lots of details?'</span> },
+        layout: { alias: <span class="string">'l'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Use this html file for the layout of the documentation pages.'</span> },
+        block: { alias: <span class="string">'b'</span>, string: <span class="keyword">true</span>, describe: <span class="string">'Use this partial html file for generating snippets of annotated code.'</span> }
+    })
+
+
+<span class="comment">// TODO: Add a config file into the mix if they asked for it on the command line</span>
+<span class="comment">// if(nconf.get('config')) nconf.file(nconf.get('config'));</span>
+
+
+<span class="comment">// Set up the default configuration</span>
+nconf.defaults({
+        path: <span class="string">"."</span>,
+        match: <span class="string">"*.js"</span>,
+        maxdepth: <span class="keyword">null</span>,
+        <span class="string">"write-to"</span>: <span class="string">"docs"</span>,
+        <span class="comment">// markdown: true,</span>
+        <span class="comment">// highlight: true,</span>
+        layout: <span class="string">"layout.html"</span>,
+        block: <span class="string">"block.html"</span>
+    });
+
+
+<span class="comment">// For convenience we alias the configuration values we are using</span>
+<span class="keyword">var</span> PATH = nconf.get(<span class="string">'path'</span>),
+    MATCH = nconf.get(<span class="string">'match'</span>),
+    MAXDEPTH = nconf.get(<span class="string">'maxdepth'</span>),
+    WRITE_TO = nconf.get(<span class="string">'write-to'</span>),
+    MARKDOWN = nconf.get(<span class="string">'markdown'</span>),
+    HIGHLIGHT = nconf.get(<span class="string">'highlight'</span>),
+    LAYOUT = nconf.get(<span class="string">'layout'</span>),
+    BLOCK = nconf.get(<span class="string">'block'</span>),
+    VERBOSE = nconf.get(<span class="string">'verbose'</span>);
+
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Function: log</h3>
+<p><code>console.log</code> only if they set the verbose flag</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">function</span> log() {
+    <span class="keyword">if</span>(VERBOSE) console.log.apply(console, arguments);
+}
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Initialize templates</h3>
+<p>Read in the raw template files and set up the map object that tells
+Plates how to map our data object into the markup.</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">var</span> tplLayout = fs.readFileSync(LAYOUT, <span class="string">'utf8'</span>),
+    tplBlock = fs.readFileSync(BLOCK, <span class="string">'utf8'</span>),
+    map = Plates.Map();
+map.<span class="keyword">class</span>(<span class="string">'annotation'</span>).to(<span class="string">'comment'</span>);
+map.<span class="keyword">class</span>(<span class="string">'annotated-code'</span>).to(<span class="string">'code'</span>);
+
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Find the files</h3>
+<p>We find the files using a &#39;find&#39; command on the OS... Assuming a *nix system here.</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">var</span> findCmd = <span class="string">'find '</span> + PATH + (MAXDEPTH ? <span class="string">' -maxdepth '</span> + MAXDEPTH : <span class="string">''</span>) + <span class="string">' -type f -name "'</span> + MATCH + <span class="string">'" -print'</span>;
+<span class="keyword">require</span>(<span class="string">'child_process'</span>).exec(findCmd, <span class="keyword">function</span>(err, stdout, stderr) {
+    <span class="keyword">if</span>(err) <span class="keyword">throw</span> err;
+
+    <span class="comment">// Now that we have the files we can iterate over them</span>
+    async.<span class="keyword">forEach</span>(stdout.split(<span class="string">'\n'</span>), <span class="keyword">function</span>(file, cb) {
+        <span class="keyword">if</span>(!file) <span class="keyword">return</span> cb();
+
+        <span class="comment">// Generate the path where we will create the documentation file</span>
+        file = path.normalize(file);
+        <span class="keyword">var</span> fileOut = path.join(WRITE_TO, file.replace(/\.js$/, <span class="string">'.js.html'</span>));
+
+        console.log(<span class="string">'Annotating: '</span> + file + <span class="string">' -> '</span> + fileOut);
+
+        <span class="comment">// Read the source file, pass the contents to annotateCode, take the resulting markup and, after</span>
+        <span class="comment">// ensuring that the directory exists, write the markup to file.</span>
+        async.waterfall([
+            async.apply(readFile, file),
+            async.apply(annotateCode, file),
+            <span class="keyword">function</span>(markup, cb) {
+                async.series([
+                    async.apply(ensureDirectoryExists, path.dirname(fileOut)),
+                    async.apply(writeFile, fileOut, markup)
+                ], cb);
+            }
+        ], cb);
+    }, <span class="keyword">function</span>(err) {
+        <span class="keyword">if</span>(err) <span class="keyword">throw</span> <span class="keyword">new</span> Error(err);
+    })
+});
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Function: readFile</h3>
+<p>A function for asyncronously reading a file</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">function</span> readFile(file, cb) {
+    log(<span class="string">'Reading: '</span> + file);
+    fs.readFile(file, <span class="string">'utf8'</span>, cb);
+}
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Function: writeFile</h3>
+<p>A function for asyncronously writing a file</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">function</span> writeFile(file, contents, cb) {
+    log(<span class="string">'Writing: '</span> + file + <span class="string">' ('</span> + contents.length + <span class="string">' chars)'</span>);
+    fs.writeFile(file, contents, cb);
+}
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Function: ensureDirectoryExists</h3>
+<p>A function to asyncronously ensure that a directory exists, recursively creating it if it does not</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">function</span> ensureDirectoryExists(dir, cb) {
+    log(<span class="string">'Checking for dir: '</span> + dir);
+    path.exists(dir, <span class="keyword">function</span>(exists) {
+        <span class="keyword">if</span>(exists) <span class="keyword">return</span> cb();
+
+        ensureDirectoryExists(path.dirname(dir), <span class="keyword">function</span>(err) {
+            <span class="keyword">if</span>(err) <span class="keyword">return</span> cb(err);
+
+            log(<span class="string">'Making directory: '</span> + dir);
+            fs.mkdir(dir, cb);
+        });
+    });
+}
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Regular expressions for parsing source code</h3>
+<ul>
+<li><strong>rxStartAnnotation</strong> Identify start of annotation (empty comment line)</li>
+<li><strong>rxComment</strong> Used to identify comment lines and remove whitespace and slashes from the start of the line</li>
+<li><strong>rxBlankLine</strong> Use to identify blank lines</li>
+</ul>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">var</span> rxStartAnnotation = /^\s*\/\/\s*$/,
+    rxComment = /^\s*\/\/\s*/,
+    rxBlankLine = /^\s*$/;
+</code></pre></div>
+</div>
+<div class="annotated-block clearfix">
+	<div class="annotation"><h3>Function: annotateCode</h3>
+<p>A function to parse an individual source file and return markup representing annotated documentation</p>
+</div>
+	<div class="annotated-code"><pre><code><span class="keyword">function</span> annotateCode(file, code, cb) {
+    <span class="keyword">var</span> lines = code.split(<span class="string">'\n'</span>),
+        line,
+        block = { comment:[], code:[] },
+        blocks = [ block ],
+        inAnnotation = <span class="keyword">true</span>;
+
+    log(<span class="string">'Parsing: '</span> + file);
+
+    <span class="comment">// Loop over the lines of the file and build a collection of comment/code pairs</span>
+    <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = lines.length; i &lt; len; i++) {
+        line = lines[i];
+        <span class="keyword">if</span>(!inAnnotation &amp;&amp; rxStartAnnotation.test(line)) {
+            blocks.push(block = { comment:[], code:[] });
+            inAnnotation = <span class="keyword">true</span>;
+        } <span class="keyword">else</span> <span class="keyword">if</span>(inAnnotation &amp;&amp; rxComment.test(line)) {
+            block.comment.push(line.replace(rxComment, <span class="string">''</span>));
+        } <span class="keyword">else</span> {
+            <span class="keyword">if</span>(inAnnotation &amp;&amp; rxBlankLine.test(line)) <span class="keyword">continue</span>;
+            inAnnotation = <span class="keyword">false</span>;
+            block.code.push(line)
+        }
+    }
+
+    <span class="comment">// Parse the markdown for each comment and perform syntax highlighting for each code block</span>
+    blocks.<span class="keyword">forEach</span>(<span class="keyword">function</span>(block) {
+        block.comment = MARKDOWN ? markdown(block.comment.join(<span class="string">'\n'</span>)) : block.comment.join(<span class="string">'\n'</span>);
+        block.code = <span class="string">'&lt;pre>&lt;code>'</span> + (HIGHLIGHT ? highlight(block.code.join(<span class="string">'\n'</span>)) : block.code.join(<span class="string">'\n'</span>)) + <span class="string">'&lt;/code>&lt;/pre>'</span>;
+    });
+
+    <span class="comment">// Generate the markup using Plates templates</span>
+    <span class="keyword">var</span> markup = Plates.bind(tplLayout, {
+        title: file + <span class="string">' - annote'</span>,
+        file: file,
+        <span class="string">'annotated-source'</span>: Plates.bind(tplBlock, blocks, map)
+    });
+    log(<span class="string">'Parsed: '</span> + file + <span class="string">' ('</span> + markup.length + <span class="string">' chars)'</span>);
+    cb(<span class="keyword">null</span>, markup);
+}
+</code></pre></div>
+</div>
+</div>
+	</body>
+</html>
