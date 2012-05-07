@@ -1,4 +1,16 @@
 #!/usr/local/bin/node
+//
+// Auto-generated documentation in the form of annotated source code.
+//
+// Usage:
+//
+// ```
+//     annote.js --path lib --match "*.js" --write-to documentation // document js files from lib in the documentation directory
+//     annote.js --path src -d 1 // only document code at the root of the src directory
+//     annote.js -p src --maxdepth 1 // same as previous
+//     annote.js --no-markdown // no markdown in comments
+//     annote.js --md --no-highlight // markdown but no syntax highlighting
+// ```
 /**
  * annote
  *
@@ -24,15 +36,7 @@ var fs = require('fs'),
 
 //
 // ### Command line options
-// Descriptions of options are in the source code... Examples of calls:
-//
-// ```
-//     annote.js --path lib --match "*.js" --write-to documentation // document js files from lib in the documentation directory
-//     annote.js --path src -d 1 // only document code at the root of the src directory
-//     annote.js -p src --maxdepth 1 // same as previous
-//     annote.js --no-markdown // no markdown in comments
-//     annote.js --md --no-highlight // markdown but no syntax highlighting
-// ```
+// Descriptions of options are in the source code...
 nconf.argv({
 		config: { alias: 'c', string: true, describe: 'Optionally provide a path to a json config file.' },
 		path: { alias: 'p', string: true, describe: 'Generate docs for files found at this path.' },
@@ -205,7 +209,7 @@ function annotateCode(file, code, cb) {
 
 	// Generate the markup using Plates templates
 	var markup = Plates.bind(tplLayout, {
-		title: file + ' - annote',
+		title: file + ' - annoted',
 		file: file,
 		'annotated-source': Plates.bind(tplBlock, blocks, map)
 	});
